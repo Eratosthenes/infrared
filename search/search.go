@@ -12,7 +12,6 @@ import (
 /*
 Index: {docs, tMap:{term: TermFreq:{idf, tfMap:{doc1: tf1, doc2: tf2, ...}}}}
 */
-
 type Index struct {
 	TMap map[string]TermFreq `json:"t_map"` // term map
 	docs []Document
@@ -25,13 +24,13 @@ type TermFreq struct {
 }
 
 // Search returns an ordering of the documents based on the search terms
-func (idx Index) Search(terms []string) ([]Document, error) {
+func (idx Index) Search(terms []string) ([]SearchResult, error) {
 	docs := idx.docs
-	var results []Document
+	var results []SearchResult
 	for _, doc := range docs {
-		doc.Score = idx.docScore(terms, doc.Name)
-		if doc.Score > 0 {
-			results = append(results, doc)
+		sr := idx.docScore(terms, &doc)
+		if sr.Score > 0 {
+			results = append(results, sr)
 		}
 	}
 	sort.Slice(results, func(i, j int) bool {
@@ -41,23 +40,52 @@ func (idx Index) Search(terms []string) ([]Document, error) {
 	return results, nil
 }
 
+// Loader is a function that returns documents given some options.
+type Loader func(opts DocOpts) ([]Document, error)
+
+func LoadDocs(opts DocOpts) ([]Document, error) {
+	// load documents from the LoadPath directory
+	// create new docs for each file in the directory using NewDoc
+	files, err := os.ReadDir(opts.LoadPath)
+	if err != nil {
+		return []Document{}, err
+	}
+
+	var docs []Document
+	for _, file := range files {
+		info, err := file.Info()
+		if err != nil {
+			return []Document{}, err
+		}
+		if info.IsDir() {
+			continue
+		}
+		doc, err := NewDoc(file, opts)
+		if err != nil {
+			return []Document{}, err
+		}
+		docs = append(docs, doc)
+	}
+	return docs, nil
+}
+
 // buildIndex builds the index from the documents in the docs directory
-func NewIndex(lenPreview int) *Index {
+func NewIndex(loader Loader, docOpts DocOpts) *Index {
 	idx := &Index{}
-	idx.populate(lenPreview)
+	idx.populate(loader, docOpts)
 	idx.build()
 	return idx
 }
 
-func (idx *Index) populate(lenPreview int) {
-	docs, err := GetDocs(lenPreview)
+func (idx *Index) populate(loader Loader, docOpts DocOpts) {
+	docs, err := loader(docOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
 	idx.docs = docs
 }
 
-func LoadIndex() *Index {
+func LoadIndex(loader Loader, docOpts DocOpts) *Index {
 	// Read the JSON data from the file
 	jsonData, err := os.ReadFile("index.json")
 	if err != nil {
@@ -71,7 +99,7 @@ func LoadIndex() *Index {
 		log.Fatal(err)
 	}
 
-	idx.populate(400)
+	idx.populate(loader, docOpts)
 	return &idx
 }
 
@@ -121,7 +149,7 @@ func (idx *Index) build() {
 			if _, ok := idx.TMap[word]; !ok {
 				idx.TMap[word] = TermFreq{TfMap: make(map[string]float64)}
 			}
-			idx.TMap[word].TfMap[doc.Name] += 1.0 / float64(doc.length)
+			idx.TMap[word].TfMap[doc.Name] += 1.0 / float64(doc.Length)
 		}
 	}
 
@@ -161,11 +189,12 @@ func (idx *Index) tfLogIdf(term, docName string) float64 {
 }
 
 // docScore calculates the score of a document based on the geometric mean of search terms scores
-func (idx *Index) docScore(terms []string, docName string) float64 {
+// func (idx *Index) docScore(terms []string, docName string) float64 {
+func (idx *Index) docScore(terms []string, doc *Document) SearchResult {
 	score := 1.0
 	nfound := 0.0
 	for _, term := range buildNgrams(terms) {
-		termScore := idx.tfLogIdf(strings.ToLower(term), docName)
+		termScore := idx.tfLogIdf(strings.ToLower(term), doc.Name)
 		if termScore > 0 {
 			score *= termScore
 			nfound++
@@ -178,5 +207,5 @@ func (idx *Index) docScore(terms []string, docName string) float64 {
 	} else {
 		docScore = math.Pow(score, 1/nfound)
 	}
-	return docScore
+	return SearchResult{Document: doc, Score: docScore}
 }
