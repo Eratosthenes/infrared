@@ -91,6 +91,6 @@ Each term is weighted by how often it appears in a document (TF—term frequency
 
 InfraRed also applies an L₂ normalization step that balances each term’s influence across the corpus.  This ensures that every term contributes proportionally to how informative it is.
 
-When you search for multiple terms, InfraRed computes a relevance score for each term and then combines all non-zero scores using a weighted geometric mean. This rewards documents that match more of the query terms while still giving partial credit to those that contain only some of them. The result is a balanced ranking that rewards comprehensive matches without zeroing out documents that miss a term.
+When you search for multiple terms, InfraRed computes a relevance score for each term and then combines all non-zero scores using a weighted geometric mean. This rewards documents that match more of the query terms while still giving partial credit to those that contain only some of them.
 
 The result is a compact, fast, and interpretable relevance model that produces rankings that "feel right" even on small text collections.
