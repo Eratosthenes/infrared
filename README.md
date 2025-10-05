@@ -24,7 +24,8 @@ InfraRed normalizes each term’s contribution and combines them geometrically, 
 
 ```text
 $ go run main.go
-Index built in 49 milliseconds.
+Index built in 61 milliseconds.
+The index file is 362 KB.
 
 Documents: 4
 Indexed ngrams: 55873

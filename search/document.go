@@ -7,7 +7,8 @@ import (
 )
 
 type DocOpts struct {
-	LoadPath    string
+	IndexPath   string // path to save/load the index
+	LoadPath    string // directory to load documents from
 	LoadContent bool
 	LenPreview  int
 }

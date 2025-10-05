@@ -1,125 +1,185 @@
 package search
 
 import (
-	"fmt"
-	"regexp"
+	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
-func Test_regex(t *testing.T) {
-	input := `<!-- This is a comment --> Some text <!-- Another comment --> More text`
-	re := regexp.MustCompile(`<!--(.*?)-->`)
-	// matches := re.FindAllString(input, -1)
-	matches := re.FindAllStringSubmatch(input, 2)
-	var match string
-	for _, matchGroup := range matches {
-		if len(matchGroup) > 1 {
-			match = strings.Trim(matchGroup[1], " ")
-			fmt.Println(match)
+func TestSearchEngine(t *testing.T) {
+	opts := DocOpts{
+		LoadPath:    "../example/docs",
+		LoadContent: true,
+	}
+
+	index := NewIndex(DefaultLoader, opts)
+	if index.DocCount() == 0 {
+		t.Fatalf("expected >0 documents, got %d", index.DocCount())
+	}
+
+	tests := []struct {
+		query    string
+		expected string
+	}{
+		{"moral law", "civil_disobedience.txt"},
+		{"human nature", "self_reliance.txt"},
+		{"use of language", "politics_and_the_english_language.txt"},
+		{"land", "how_much_land.txt"},
+	}
+
+	for _, tt := range tests {
+		results, err := index.Search(strings.Fields(tt.query))
+		if err != nil {
+			t.Fatalf("search error for %q: %v", tt.query, err)
+		}
+		if len(results) == 0 {
+			t.Errorf("no results for query %q", tt.query)
+			continue
+		}
+
+		got := results[0].Name
+		if got != tt.expected {
+			t.Errorf("query %q: expected top result %q, got %q", tt.query, tt.expected, got)
 		}
 	}
-	fmt.Println(match)
 }
 
-// func Test_parseDate(t *testing.T) {
-// 	type args struct {
-// 		date time.Time
-// 		path string
-// 	}
-// 	tests := []struct {
-// 		name    string
-// 		args    args
-// 		want    string
-// 		wantErr bool
-// 	}{
-// 		{
-// 			name: "first_essay.md",
-// 			args: args{
-// 				date: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
-// 				path: "/docs/essays/first_essay.md",
-// 			},
-// 			want: "2024-12-02",
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			os.Chdir("/home/thinker/Documents/Programs/Golang/go-blog")
-// 			got, err := parseDate(tt.args.date, tt.args.path)
-// 			if (err != nil) != tt.wantErr {
-// 				t.Errorf("parseDate() error = %v, wantErr %v", err, tt.wantErr)
-// 				return
-// 			}
-// 			if got != tt.want {
-// 				t.Errorf("parseDate() = %v, want %v", got, tt.want)
-// 			}
-// 		})
-// 	}
-// }
+func TestNormalizationConsistency(t *testing.T) {
+	opts := DocOpts{
+		LoadPath:    "../example/docs",
+		LoadContent: true,
+	}
+	index := NewIndex(DefaultLoader, opts)
 
-// func Test_NewIndex(t *testing.T) {
-// 	os.Chdir("..")
-// 	NewIndex(200)
-// }
+	// Ensure normalization produces comparable scores
+	r1, _ := index.Search(strings.Fields("freedom and law"))
+	r2, _ := index.Search(strings.Fields("moral law"))
 
-// func Test_Search(t *testing.T) {
-// 	os.Chdir("..")
-// 	index := NewIndex(200)
-// 	// index := LoadIndex()
-// 	docs, err := index.Search([]string{"massa", "nunct"})
-// 	if err != nil {
-// 		t.Error(err)
-// 	}
-// 	for _, doc := range docs {
-// 		fmt.Println(doc.Name, doc.Score)
-// 	}
-// }
+	if len(r1) == 0 || len(r2) == 0 {
+		t.Skip("not enough results for comparison")
+	}
 
-// func Test_get_ngrams(t *testing.T) {
-// 	words := []string{"the", "quick", "brown", "fox", "jumps", "over", "the", "lazy", "dog"}
-// 	ng := ngrams(words, 3)
-// 	for _, n := range ng {
-// 		fmt.Println(n)
-// 	}
-// }
+	if r1[0].Score < 0 || r1[0].Score > 1 {
+		t.Errorf("expected normalized score in [0,1], got %.3f", r1[0].Score)
+	}
+	if r2[0].Score < 0 || r2[0].Score > 1 {
+		t.Errorf("expected normalized score in [0,1], got %.3f", r2[0].Score)
+	}
+}
 
-// func Test_NewDoc(t *testing.T) {
-// 	os.Chdir("..")
-// 	dirs, err := os.ReadDir("./docs")
-// 	if err != nil {
-// 		t.Error(err)
-// 	}
+func TestSaveLoadSearch(t *testing.T) {
+	opts := DocOpts{
+		IndexPath:   "test_index.json",
+		LoadPath:    "../example/docs",
+		LoadContent: true,
+	}
 
-// 	docOpts := DocOpts{
-// 		LoadContent: true,
-// 		LenPreview:  200,
-// 	}
+	// --- Build index
+	idx := NewIndex(DefaultLoader, opts)
+	if idx.DocCount() == 0 {
+		t.Fatal("expected non-empty index")
+	}
 
-// 	var docList []Document
-// 	for _, dir := range dirs {
-// 		files, err := os.ReadDir("./docs/" + dir.Name())
-// 		if err != nil {
-// 			t.Error(err)
-// 		}
-// 		for _, file := range files {
-// 			info, err := file.Info()
-// 			if err != nil {
-// 				t.Error(err)
-// 			}
-// 			loc := Location{
-// 				Info: info,
-// 				Dir:  dir,
-// 			}
-// 			doc, err := loc.NewDoc(docOpts)
-// 			// doc, err := NewDoc(info, dir, false)
-// 			if err != nil {
-// 				t.Error(err)
-// 			}
-// 			docList = append(docList, doc)
-// 		}
-// 	}
+	// --- Save to a temporary file
+	tmpFile := "test_index.json"
+	defer os.Remove(tmpFile)
 
-// 	for _, doc := range docList {
-// 		fmt.Println(doc.Name, doc.Path, doc.Date, doc.Preview)
-// 	}
-// }
+	if err := idx.Save(tmpFile); err != nil {
+		t.Fatalf("failed to save index: %v", err)
+	}
+
+	// --- Load from disk
+	loaded := LoadIndex(DefaultLoader, opts)
+	if loaded.DocCount() != idx.DocCount() {
+		t.Errorf("doc count mismatch: got %d, want %d", loaded.DocCount(), idx.DocCount())
+	}
+	if len(loaded.TMap) != len(idx.TMap) {
+		t.Errorf("term map size mismatch: got %d, want %d", len(loaded.TMap), len(idx.TMap))
+	}
+
+	// --- Run a sample query
+	results, err := loaded.Search([]string{"moral", "law"})
+	if err != nil {
+		t.Fatalf("search on loaded index failed: %v", err)
+	}
+	if len(results) == 0 {
+		t.Fatalf("expected results from loaded index, got 0")
+	}
+
+	// --- Verify top result stability
+	top := results[0].Name
+	if top != "civil_disobedience.txt" {
+		t.Errorf("unexpected top result after reload: got %q, want %q", top, "civil_disobedience.txt")
+	}
+}
+
+func BenchmarkBuildIndex(b *testing.B) {
+	opts := DocOpts{
+		LoadPath:    "../example/docs",
+		LoadContent: true,
+	}
+
+	for i := 0; i < b.N; i++ {
+		start := time.Now()
+		NewIndex(DefaultLoader, opts)
+		elapsed := time.Since(start)
+		b.ReportMetric(float64(elapsed.Milliseconds()), "ms/index")
+	}
+}
+
+func BenchmarkSearch(b *testing.B) {
+	opts := DocOpts{
+		LoadPath:    "../example/docs",
+		LoadContent: true,
+	}
+	index := NewIndex(DefaultLoader, opts)
+
+	queries := [][]string{
+		{"moral", "law"},
+		{"human", "nature"},
+		{"use", "of", "language"},
+		{"freedom", "and", "law"},
+		{"land"},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		q := queries[i%len(queries)]
+		results, _ := index.Search(q)
+		if len(results) == 0 {
+			b.Fatalf("no results for %v", q)
+		}
+	}
+}
+
+func BenchmarkIndexSize(b *testing.B) {
+	opts := DocOpts{
+		LoadPath:    "../example/docs",
+		LoadContent: true,
+	}
+	index := NewIndex(DefaultLoader, opts)
+
+	tmpfile := "bench_index.json"
+	defer os.Remove(tmpfile)
+
+	start := time.Now()
+	if err := index.Save(tmpfile); err != nil {
+		b.Fatalf("failed to save index: %v", err)
+	}
+	elapsed := time.Since(start)
+
+	info, err := os.Stat(tmpfile)
+	if err != nil {
+		b.Fatalf("failed to stat index file: %v", err)
+	}
+
+	sizeBytes := float64(info.Size())
+	sizeKB := sizeBytes / 1024.0
+	totalTerms := float64(index.TotalTerms())
+	bytesPerTerm := sizeBytes / totalTerms
+
+	b.ReportMetric(sizeKB, "KB")
+	b.ReportMetric(bytesPerTerm, "B/term")
+	b.ReportMetric(float64(elapsed.Milliseconds()), "ms/save")
+}

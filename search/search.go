@@ -1,7 +1,9 @@
 package search
 
 import (
+	"compress/gzip"
 	"encoding/json"
+	"io"
 	"log"
 	"math"
 	"os"
@@ -91,8 +93,7 @@ func DefaultLoader(opts DocOpts) ([]Document, error) {
 	return docs, nil
 }
 
-// Normalizer converts a raw document string into a cleaned version
-// before tokenization (e.g. lowercase, strip punctuation, etc.).
+// Normalizer converts a raw document string into a cleaned version before tokenization (e.g. lowercase, strip punctuation, etc.).
 type Normalizer func(text string) string
 
 // DefaultNormalizer lowercases and strips punctuation.
@@ -126,36 +127,49 @@ func (idx *Index) populate(loader Loader, docOpts DocOpts) {
 	idx.docs = docs
 }
 
-// LoadIndex loads the index from a file.
+// LoadIndex loads the index from a gzipped file.
 func LoadIndex(loader Loader, docOpts DocOpts) *Index {
-	// Read the JSON data from the file
-	jsonData, err := os.ReadFile("index.json")
+	file, err := os.Open(docOpts.IndexPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to open index file: %v", err)
+	}
+	defer file.Close()
+
+	// Wrap with gzip reader
+	gz, err := gzip.NewReader(file)
+	if err != nil {
+		log.Fatalf("failed to create gzip reader: %v", err)
+	}
+	defer gz.Close()
+
+	data, err := io.ReadAll(gz)
+	if err != nil {
+		log.Fatalf("failed to read gzipped data: %v", err)
 	}
 
-	// Unmarshal the JSON data into the Index object
-	idx := Index{}
-	err = json.Unmarshal(jsonData, &idx)
-	if err != nil {
-		log.Fatal(err)
+	var idx Index
+	if err := json.Unmarshal(data, &idx); err != nil {
+		log.Fatalf("failed to unmarshal index: %v", err)
 	}
 
 	idx.populate(loader, docOpts)
 	return &idx
 }
 
-// Save saves the index to a file.
-func (idx *Index) Save() error {
-	// Marshal the Index object into JSON
-	jsonData, err := json.Marshal(idx)
+// Save saves the index to a gzipped JSON file.
+func (idx *Index) Save(path string) error {
+	file, err := os.Create(path)
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
-	// Write the JSON data to a file
-	err = os.WriteFile("index.json", jsonData, 0644)
-	if err != nil {
+	// Create a gzip writer for compression
+	gz := gzip.NewWriter(file)
+	defer gz.Close()
+
+	enc := json.NewEncoder(gz)
+	if err := enc.Encode(idx); err != nil {
 		return err
 	}
 
@@ -235,7 +249,6 @@ func (idx *Index) tfLogIdf(term, docName string) float64 {
 }
 
 // docScore calculates the score of a document based on the geometric mean of search terms scores
-// func (idx *Index) docScore(terms []string, docName string) float64 {
 func (idx *Index) docScore(terms []string, doc *Document) SearchResult {
 	score := 1.0
 	nfound := 0.0
