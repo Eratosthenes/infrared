@@ -20,6 +20,14 @@ InfraRed normalizes each term’s contribution and combines them geometrically, 
 
 ---
 
+### ⚡ Performance
+
+Infrared builds its index in about 61 ms for four medium-length essays (~31,000 words total) and saves it as a 362 KB gzipped JSON file—using roughly 12 bytes per word in the corpora.
+
+Search latency for these documents is in the range of 7–30 µs per query, returning ranked, normalized results.
+
+---
+
 ## Example Usage
 
 ```text
