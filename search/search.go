@@ -3,6 +3,7 @@ package search
 import (
 	"container/heap"
 	"math"
+	"sort"
 	"strings"
 )
 
@@ -63,12 +64,10 @@ func (idx Index) Search(terms []string, opts SearchOpts) ([]SearchResult, error)
 	h := &resultHeap{}
 	heap.Init(h)
 
-	results := make([]SearchResult, 0, opts.Limit)
 	for name := range candidates {
 		doc := idx.docs[name]
 		sr := idx.docScore(terms, &doc)
 		if sr.Score > 0 {
-			results = append(results, sr)
 			if h.Len() < opts.Limit {
 				heap.Push(h, sr)
 			} else if sr.Score > (*h)[0].Score {
@@ -78,11 +77,11 @@ func (idx Index) Search(terms []string, opts SearchOpts) ([]SearchResult, error)
 		}
 	}
 
-	for i := h.Len() - 1; i >= 0; i-- {
-		results[i] = heap.Pop(h).(SearchResult)
-	}
+	sort.Slice(*h, func(i, j int) bool {
+		return (*h)[i].Score > (*h)[j].Score
+	})
 
-	return results, nil
+	return *h, nil
 }
 
 // ngrams generates n-grams from a slice of words.
