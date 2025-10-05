@@ -7,14 +7,16 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 /*
 Index: {docs, tMap:{term: TermFreq:{idf, tfMap:{doc1: tf1, doc2: tf2, ...}}}}
 */
 type Index struct {
-	TMap map[string]TermFreq `json:"t_map"` // term map
-	docs []Document
+	TMap       map[string]TermFreq `json:"t_map"` // term map
+	docs       []Document
+	normalizer Normalizer
 }
 
 // key: Document name, value: normalized tf-idf
@@ -23,11 +25,30 @@ type TermFreq struct {
 	TfMap map[string]float64 `json:"tf_map"` // key: doc name, value: tf in doc
 }
 
+// DocCount returns the number of documents in the index.
+func (idx Index) DocCount() int {
+	return len(idx.docs)
+}
+
+// TermCount returns the number of unique terms in the index.
+func (idx Index) TermCount() int {
+	return len(idx.TMap)
+}
+
+// Return the total number of terms in all documents.
+func (idx Index) TotalTerms() int {
+	total := 0
+	for _, doc := range idx.docs {
+		total += doc.Length
+	}
+	return total
+}
+
 // Search returns an ordering of the documents based on the search terms
 func (idx Index) Search(terms []string) ([]SearchResult, error) {
-	docs := idx.docs
 	var results []SearchResult
-	for _, doc := range docs {
+	for i := range idx.docs {
+		doc := idx.docs[i]
 		sr := idx.docScore(terms, &doc)
 		if sr.Score > 0 {
 			results = append(results, sr)
@@ -43,7 +64,8 @@ func (idx Index) Search(terms []string) ([]SearchResult, error) {
 // Loader is a function that returns documents given some options.
 type Loader func(opts DocOpts) ([]Document, error)
 
-func LoadDocs(opts DocOpts) ([]Document, error) {
+// DefaultLoader loads documents from the filesystem using the provided options.
+func DefaultLoader(opts DocOpts) ([]Document, error) {
 	// load documents from the LoadPath directory
 	// create new docs for each file in the directory using NewDoc
 	files, err := os.ReadDir(opts.LoadPath)
@@ -69,14 +91,33 @@ func LoadDocs(opts DocOpts) ([]Document, error) {
 	return docs, nil
 }
 
-// buildIndex builds the index from the documents in the docs directory
+// Normalizer converts a raw document string into a cleaned version
+// before tokenization (e.g. lowercase, strip punctuation, etc.).
+type Normalizer func(text string) string
+
+// DefaultNormalizer lowercases and strips punctuation.
+func DefaultNormalizer(s string) string {
+	s = strings.ToLower(s)
+	s = strings.Map(func(r rune) rune {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) {
+			return r
+		}
+		return -1
+	}, s)
+	return s
+}
+
+// NewIndex creates a new search index from the documents loaded using the provided loader function.
 func NewIndex(loader Loader, docOpts DocOpts) *Index {
-	idx := &Index{}
+	idx := &Index{
+		normalizer: DefaultNormalizer,
+	}
 	idx.populate(loader, docOpts)
 	idx.build()
 	return idx
 }
 
+// populate loads documents into the index using the provided loader function
 func (idx *Index) populate(loader Loader, docOpts DocOpts) {
 	docs, err := loader(docOpts)
 	if err != nil {
@@ -85,6 +126,7 @@ func (idx *Index) populate(loader Loader, docOpts DocOpts) {
 	idx.docs = docs
 }
 
+// LoadIndex loads the index from a file.
 func LoadIndex(loader Loader, docOpts DocOpts) *Index {
 	// Read the JSON data from the file
 	jsonData, err := os.ReadFile("index.json")
@@ -103,6 +145,7 @@ func LoadIndex(loader Loader, docOpts DocOpts) *Index {
 	return &idx
 }
 
+// Save saves the index to a file.
 func (idx *Index) Save() error {
 	// Marshal the Index object into JSON
 	jsonData, err := json.Marshal(idx)
@@ -119,6 +162,7 @@ func (idx *Index) Save() error {
 	return nil
 }
 
+// ngrams generates n-grams from a slice of words.
 func ngrams(words []string, n int) []string {
 	if len(words) < n {
 		return words
@@ -131,6 +175,7 @@ func ngrams(words []string, n int) []string {
 	return ngrams
 }
 
+// buildNgrams builds bigrams and trigrams from the content and appends them to the original words.
 func buildNgrams(content []string) []string {
 	bigrams := ngrams(content, 2)
 	trigrams := ngrams(content, 3)
@@ -144,7 +189,8 @@ func (idx *Index) build() {
 	// build the term map
 	idx.TMap = make(map[string]TermFreq)
 	for _, doc := range idx.docs {
-		words := buildNgrams(strings.Fields(doc.Content))
+		text := idx.normalizer(doc.Content)
+		words := buildNgrams(strings.Fields(text))
 		for _, word := range words {
 			if _, ok := idx.TMap[word]; !ok {
 				idx.TMap[word] = TermFreq{TfMap: make(map[string]float64)}
