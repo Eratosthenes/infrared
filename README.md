@@ -33,21 +33,6 @@ Search latency for these documents is in the range of 7–30 µs per query, retu
 
 ---
 
-### Memory Efficiency Comparison
-
-InfraRed’s compressed index is extremely compact—roughly 12 bytes on disk per word. That puts it in the same efficiency class as large-scale, production search engines such as Lucene, while remaining fully human-readable and implemented in just a few hundred lines of Go.
-
-| Engine / System | Format | Typical Index Size | Approx. Bytes per Word | Notes |
-|-----------------|---------|--------------------|-------------------------|-------|
-| **InfraRed** | Gzipped JSON TF-IDF | 0.36 MB for 31 K words | **≈ 12 B/word** | Transparent, normalized TF–IDF; no positions or payloads |
-| Lucene / Elasticsearch | Binary (postings + skip lists + norms) | 50–80 GB for ≈ 2.5B words | 20–40 B/word | Production IR engine with positional data |
-| Whoosh / SQLite FTS | JSON / SQL tables | 100–200 MB for ≈ 1M words | 100–200 B/word | Lightweight, uncompressed text index |
-| Vector DB (FAISS / Milvus) | Dense float vectors (768-D × 4 B) | ~3 KB per document | >> 1000 B/word | Embedding-based; not directly comparable |
-
-At roughly 12 bytes per word, a 10 GB InfraRed index could hold on the order of 900 million words—large enough to cover the entire English Wikipedia entirely in memory.
-
----
-
 ## Example Usage
 
 ```text
