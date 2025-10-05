@@ -218,14 +218,21 @@ func (idx *Index) build() {
 		tfreq := idx.TMap[term]
 		tfreq.Idf = float64(len(idx.docs)) / float64(len(tf.TfMap)) // always >= 1
 		idx.TMap[term] = tfreq
-	}
 
-	// if the tfMap for a term exists for every document, remove the term from the index
-	for term, tf := range idx.TMap {
-		if len(tf.TfMap) == len(idx.docs) {
+		if 1/tfreq.Idf >= idx.maxThreshold() {
 			delete(idx.TMap, term)
 		}
 	}
+}
+
+// maxThreshold returns the maximum threshold for a term to be included in the index
+func (idx Index) maxThreshold() float64 {
+	docCount := math.Max(float64(idx.DocCount()), 10)
+	f := 1 / math.Sqrt(docCount/10)
+	if f < 0.05 {
+		f = 0.05
+	}
+	return f
 }
 
 func (idx *Index) tfNorm(term string) float64 {

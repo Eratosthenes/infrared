@@ -31,6 +31,8 @@ InfraRed builds its index in about 50-60 ms for four medium-length essays (~31,0
 
 Search latency for these documents is in the range of 7–30 µs per query, returning ranked, normalized results.
 
+Infrared automatically prunes overly common terms based on corpus size: for small datasets it keeps all words, and for very large ones it limits terms that appear in more than about 5 percent of documents. This ensures the index stays compact and that search results remain discriminative even at scale.
+
 ---
 
 ## Example Usage
