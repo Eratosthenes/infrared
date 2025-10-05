@@ -1,8 +1,8 @@
 package search
 
 import (
+	"container/heap"
 	"math"
-	"sort"
 	"strings"
 )
 
@@ -41,8 +41,13 @@ func (idx Index) TotalWords() int {
 	return total
 }
 
+type SearchOpts struct {
+	Limit int
+	// Future options: MinScore, SortBy, TimeOut, etc.
+}
+
 // Search returns an ordering of the documents based on the search terms
-func (idx Index) Search(terms []string) ([]SearchResult, error) {
+func (idx Index) Search(terms []string, opts SearchOpts) ([]SearchResult, error) {
 	queryTerms := buildNGrams(terms)
 
 	// collect all docs containing at least one term
@@ -55,17 +60,27 @@ func (idx Index) Search(terms []string) ([]SearchResult, error) {
 		}
 	}
 
-	var results []SearchResult
+	h := &resultHeap{}
+	heap.Init(h)
+
+	results := make([]SearchResult, 0, opts.Limit)
 	for name := range candidates {
 		doc := idx.docs[name]
 		sr := idx.docScore(terms, &doc)
 		if sr.Score > 0 {
 			results = append(results, sr)
+			if h.Len() < opts.Limit {
+				heap.Push(h, sr)
+			} else if sr.Score > (*h)[0].Score {
+				heap.Pop(h)
+				heap.Push(h, sr)
+			}
 		}
 	}
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].Score > results[j].Score
-	})
+
+	for i := h.Len() - 1; i >= 0; i-- {
+		results[i] = heap.Pop(h).(SearchResult)
+	}
 
 	return results, nil
 }

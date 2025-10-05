@@ -55,7 +55,7 @@ func main() {
 
 		// time the search
 		start := time.Now()
-		results, err := index.Search(terms)
+		results, err := index.Search(terms, ir.SearchOpts{Limit: 5})
 		if err != nil {
 			log.Fatal(err)
 		}

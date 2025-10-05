@@ -29,7 +29,7 @@ func TestSearchEngine(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		results, err := index.Search(strings.Fields(tt.query))
+		results, err := index.Search(strings.Fields(tt.query), SearchOpts{Limit: 5})
 		if err != nil {
 			t.Fatalf("search error for %q: %v", tt.query, err)
 		}
@@ -53,8 +53,9 @@ func TestNormalizationConsistency(t *testing.T) {
 	index := NewIndex(DefaultLoader, opts)
 
 	// Ensure normalization produces comparable scores
-	r1, _ := index.Search(strings.Fields("freedom and law"))
-	r2, _ := index.Search(strings.Fields("moral law"))
+	sopts := SearchOpts{Limit: 5}
+	r1, _ := index.Search(strings.Fields("freedom and law"), sopts)
+	r2, _ := index.Search(strings.Fields("moral law"), sopts)
 
 	if len(r1) == 0 || len(r2) == 0 {
 		t.Skip("not enough results for comparison")
@@ -99,7 +100,8 @@ func TestSaveLoadSearch(t *testing.T) {
 	}
 
 	// --- Run a sample query
-	results, err := loaded.Search([]string{"moral", "law"})
+	sopts := SearchOpts{Limit: 5}
+	results, err := loaded.Search([]string{"moral", "law"}, sopts)
 	if err != nil {
 		t.Fatalf("search on loaded index failed: %v", err)
 	}
@@ -146,7 +148,7 @@ func BenchmarkSearch(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		q := queries[i%len(queries)]
-		results, _ := index.Search(q)
+		results, _ := index.Search(q, SearchOpts{Limit: 5})
 		if len(results) == 0 {
 			b.Fatalf("no results for %v", q)
 		}
