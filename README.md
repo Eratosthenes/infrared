@@ -94,6 +94,8 @@ Search completed in 19 microseconds.
 -------------------------
 ```
 
+---
+
 ### Scoring Methodology
 
 InfraRed uses a classic TF-IDF approach with a few small twists for stability and interpretability.
