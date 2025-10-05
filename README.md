@@ -42,7 +42,7 @@ InfraRed’s compressed index is extremely compact—roughly 12 bytes on disk pe
 | **InfraRed** | Gzipped JSON TF-IDF | 0.36 MB for 31 K words | **≈ 12 B/term** | Transparent, normalized TF–IDF; no positions or payloads |
 | Lucene / Elasticsearch | Binary (postings + skip lists + norms) | 50–80 GB for ≈ 2.5B words | 20–40 B/term | Production IR engine with positional data |
 | Whoosh / SQLite FTS | JSON / SQL tables | 100–200 MB for ≈ 1M words | 100–200 B/term | Lightweight, uncompressed text index |
-| Vector DB (FAISS / Milvus) | Dense float vectors (768-D × 4 B) | ~3 KB per document | ≫ 1000 B/term | Embedding-based; not directly comparable |
+| Vector DB (FAISS / Milvus) | Dense float vectors (768-D × 4 B) | ~3 KB per document | >> 1000 B/term | Embedding-based; not directly comparable |
 
 At roughly 12 bytes per word, a 10 GB InfraRed index could hold on the order of 900 million words—large enough to cover the entire English Wikipedia entirely in memory.
 
