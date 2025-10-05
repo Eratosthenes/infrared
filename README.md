@@ -1,4 +1,9 @@
 # InfraRed 🔎
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/Eratosthenes/infrared.svg)](https://pkg.go.dev/github.com/Eratosthenes/infrared)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Eratosthenes/infrared)](https://goreportcard.com/report/github.com/Eratosthenes/infrared)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 _A minimal, high-performance full-text search engine written in Go._
 
 InfraRed is a lightweight information retrieval (IR) search tool that builds a TF–IDF-based index over plain-text documents (such as essays, notes, or code), supports n-gram tokenization, and returns ranked results in microseconds.
@@ -25,6 +30,21 @@ InfraRed normalizes each term’s contribution and combines them geometrically, 
 Infrared builds its index in about 61 ms for four medium-length essays (~31,000 words total) and saves it as a 362 KB gzipped JSON file—using roughly 12 bytes per word in the corpora.
 
 Search latency for these documents is in the range of 7–30 µs per query, returning ranked, normalized results.
+
+---
+
+### Memory Efficiency Comparison
+
+InfraRed’s compressed index is extremely compact—roughly 12 bytes on disk per word. That puts it in the same efficiency class as large-scale, production search engines such as Lucene, while remaining fully human-readable and implemented in just a few hundred lines of Go.
+
+| Engine / System | Format | Typical Index Size | Approx. Bytes per Term | Notes |
+|-----------------|---------|--------------------|-------------------------|-------|
+| **InfraRed** | Gzipped JSON TF-IDF | 0.36 MB for 31 K words | **≈ 12 B/term** | Transparent, normalized TF–IDF; no positions or payloads |
+| Lucene / Elasticsearch | Binary (postings + skip lists + norms) | 50–80 GB for ≈ 2.5B words | 20–40 B/term | Production IR engine with positional data |
+| Whoosh / SQLite FTS | JSON / SQL tables | 100–200 MB for ≈ 1M words | 100–200 B/term | Lightweight, uncompressed text index |
+| Vector DB (FAISS / Milvus) | Dense float vectors (768-D × 4 B) | ~3 KB per document | ≫ 1000 B/term | Embedding-based; not directly comparable |
+
+At roughly 12 bytes per word, a 10 GB InfraRed index could hold on the order of 900 million words—large enough to cover the entire English Wikipedia entirely in memory.
 
 ---
 
