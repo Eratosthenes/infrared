@@ -89,8 +89,7 @@ InfraRed uses a classic TF-IDF approach with a few small twists for stability an
 
 Each term is weighted by how often it appears in a document (TF—term frequency) and how rare it is across all documents (IDF—inverse document frequency). Common words like _and_ or _the_ therefore carry almost no weight, while distinctive terms contribute strongly.
 
-To prevent very frequent words from dominating the results, InfraRed applies a simple L₂ normalization step that balances each term’s influence across the corpus.  
-This ensures that every word contributes proportionally to how informative it is, not how common it happens to be.
+To prevent very frequent words from dominating the results, InfraRed applies a simple L₂ normalization step that balances each term’s influence across the corpus.  This ensures that every word contributes proportionally to how informative it is, not how common it happens to be.
 
 When you search for multiple terms, InfraRed computes an individual relevance score for each term and then combines the non-zero scores using a geometric mean. This emphasizes documents that match more of the query terms while still giving partial credit to those that contain only some of them. The result is a balanced ranking that rewards comprehensive matches without zeroing out documents that miss a term.
 
