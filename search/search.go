@@ -43,9 +43,21 @@ func (idx Index) TotalWords() int {
 
 // Search returns an ordering of the documents based on the search terms
 func (idx Index) Search(terms []string) ([]SearchResult, error) {
+	queryTerms := buildNGrams(terms)
+
+	// collect all docs containing at least one term
+	candidates := make(map[string]bool)
+	for _, term := range queryTerms {
+		if entry, ok := idx.TMap[term]; ok {
+			for docName := range entry.TfMap {
+				candidates[docName] = true
+			}
+		}
+	}
+
 	var results []SearchResult
-	for i := range idx.docs {
-		doc := idx.docs[i]
+	for name := range candidates {
+		doc := idx.docs[name]
 		sr := idx.docScore(terms, &doc)
 		if sr.Score > 0 {
 			results = append(results, sr)
@@ -71,8 +83,8 @@ func ngrams(words []string, n int) []string {
 	return ngrams
 }
 
-// buildNgrams builds bigrams and trigrams from the content and appends them to the original words.
-func buildNgrams(content []string) []string {
+// buildNGrams builds bigrams and trigrams from the content and appends them to the original words.
+func buildNGrams(content []string) []string {
 	bigrams := ngrams(content, 2)
 	trigrams := ngrams(content, 3)
 	content = append(content, bigrams...)
@@ -86,7 +98,7 @@ func (idx *Index) build() {
 	idx.TMap = make(map[string]TermFreq)
 	for _, doc := range idx.docs {
 		text := idx.normalizer(doc.Content)
-		words := buildNgrams(strings.Fields(text))
+		words := buildNGrams(strings.Fields(text))
 		for _, word := range words {
 			if _, ok := idx.TMap[word]; !ok {
 				idx.TMap[word] = TermFreq{TfMap: make(map[string]float64)}
@@ -148,7 +160,7 @@ func (idx *Index) tfLogIdf(term, docName string) float64 {
 func (idx *Index) docScore(terms []string, doc *Document) SearchResult {
 	weightedSum := 0.0
 	weightTotal := 0.0
-	for _, term := range buildNgrams(terms) {
+	for _, term := range buildNGrams(terms) {
 		termScore := idx.tfLogIdf(strings.ToLower(term), doc.Name)
 		if termScore > 0 {
 			w := math.Log(idx.idf(term))
