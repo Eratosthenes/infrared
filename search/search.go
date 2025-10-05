@@ -1,15 +1,9 @@
 package search
 
 import (
-	"compress/gzip"
-	"encoding/json"
-	"io"
-	"log"
 	"math"
-	"os"
 	"sort"
 	"strings"
-	"unicode"
 )
 
 /*
@@ -19,6 +13,7 @@ type Index struct {
 	TMap       map[string]TermFreq `json:"t_map"` // term map
 	docs       []Document
 	normalizer Normalizer
+	compressed bool
 }
 
 // key: Document name, value: normalized tf-idf
@@ -61,119 +56,6 @@ func (idx Index) Search(terms []string) ([]SearchResult, error) {
 	})
 
 	return results, nil
-}
-
-// Loader is a function that returns documents given some options.
-type Loader func(opts DocOpts) ([]Document, error)
-
-// DefaultLoader loads documents from the filesystem using the provided options.
-func DefaultLoader(opts DocOpts) ([]Document, error) {
-	// load documents from the LoadPath directory
-	// create new docs for each file in the directory using NewDoc
-	files, err := os.ReadDir(opts.LoadPath)
-	if err != nil {
-		return []Document{}, err
-	}
-
-	var docs []Document
-	for _, file := range files {
-		info, err := file.Info()
-		if err != nil {
-			return []Document{}, err
-		}
-		if info.IsDir() {
-			continue
-		}
-		doc, err := NewDoc(file, opts)
-		if err != nil {
-			return []Document{}, err
-		}
-		docs = append(docs, doc)
-	}
-	return docs, nil
-}
-
-// Normalizer converts a raw document string into a cleaned version before tokenization (e.g. lowercase, strip punctuation, etc.).
-type Normalizer func(text string) string
-
-// DefaultNormalizer lowercases and strips punctuation.
-func DefaultNormalizer(s string) string {
-	s = strings.ToLower(s)
-	s = strings.Map(func(r rune) rune {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) {
-			return r
-		}
-		return -1
-	}, s)
-	return s
-}
-
-// NewIndex creates a new search index from the documents loaded using the provided loader function.
-func NewIndex(loader Loader, docOpts DocOpts) *Index {
-	idx := &Index{
-		normalizer: DefaultNormalizer,
-	}
-	idx.populate(loader, docOpts)
-	idx.build()
-	return idx
-}
-
-// populate loads documents into the index using the provided loader function
-func (idx *Index) populate(loader Loader, docOpts DocOpts) {
-	docs, err := loader(docOpts)
-	if err != nil {
-		log.Fatal(err)
-	}
-	idx.docs = docs
-}
-
-// LoadIndex loads the index from a gzipped file.
-func LoadIndex(loader Loader, docOpts DocOpts) *Index {
-	file, err := os.Open(docOpts.IndexPath)
-	if err != nil {
-		log.Fatalf("failed to open index file: %v", err)
-	}
-	defer file.Close()
-
-	// Wrap with gzip reader
-	gz, err := gzip.NewReader(file)
-	if err != nil {
-		log.Fatalf("failed to create gzip reader: %v", err)
-	}
-	defer gz.Close()
-
-	data, err := io.ReadAll(gz)
-	if err != nil {
-		log.Fatalf("failed to read gzipped data: %v", err)
-	}
-
-	var idx Index
-	if err := json.Unmarshal(data, &idx); err != nil {
-		log.Fatalf("failed to unmarshal index: %v", err)
-	}
-
-	idx.populate(loader, docOpts)
-	return &idx
-}
-
-// Save saves the index to a gzipped JSON file.
-func (idx *Index) Save(path string) error {
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	// Create a gzip writer for compression
-	gz := gzip.NewWriter(file)
-	defer gz.Close()
-
-	enc := json.NewEncoder(gz)
-	if err := enc.Encode(idx); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // ngrams generates n-grams from a slice of words.

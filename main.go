@@ -15,6 +15,7 @@ func main() {
 		IndexPath:   "./example/index.gz",
 		LoadPath:    "./example/docs",
 		LoadContent: true,
+		Compressed:  true,
 	}
 
 	// build the index

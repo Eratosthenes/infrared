@@ -11,6 +11,7 @@ type DocOpts struct {
 	LoadPath    string // directory to load documents from
 	LoadContent bool
 	LenPreview  int
+	Compressed  bool
 }
 
 type Document struct {

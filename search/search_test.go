@@ -157,10 +157,11 @@ func BenchmarkIndexSize(b *testing.B) {
 	opts := DocOpts{
 		LoadPath:    "../example/docs",
 		LoadContent: true,
+		Compressed:  true,
 	}
 	index := NewIndex(DefaultLoader, opts)
 
-	tmpfile := "bench_index.json"
+	tmpfile := "bench_index.json.gz"
 	defer os.Remove(tmpfile)
 
 	start := time.Now()
