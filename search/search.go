@@ -37,8 +37,8 @@ func (idx Index) TermCount() int {
 	return len(idx.TMap)
 }
 
-// Return the total number of terms in all documents.
-func (idx Index) TotalTerms() int {
+// Return the total number of words in all documents.
+func (idx Index) TotalWords() int {
 	total := 0
 	for _, doc := range idx.docs {
 		total += doc.Length

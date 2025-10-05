@@ -176,7 +176,7 @@ func BenchmarkIndexSize(b *testing.B) {
 
 	sizeBytes := float64(info.Size())
 	sizeKB := sizeBytes / 1024.0
-	totalTerms := float64(index.TotalTerms())
+	totalTerms := float64(index.TotalWords())
 	bytesPerTerm := sizeBytes / totalTerms
 
 	b.ReportMetric(sizeKB, "KB")

@@ -43,7 +43,7 @@ func main() {
 	// print index metrics
 	fmt.Printf("Documents: %d\n", index.DocCount())
 	fmt.Printf("Indexed ngrams: %d\n", index.TermCount())
-	fmt.Printf("Total terms in all documents: %d\n", index.TotalTerms())
+	fmt.Printf("Total words in corpus: %d\n", index.TotalWords())
 	fmt.Println("-------------------------")
 
 	searchAndPrint := func(s string, index *ir.Index) {
