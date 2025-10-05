@@ -1,5 +1,4 @@
 # InfraRed 🔎
-
 _A minimal, high-performance full-text search engine written in Go._
 
 InfraRed is a lightweight information retrieval (IR) search tool that builds a TF–IDF-based index over plain-text documents (such as essays, notes, or code), supports n-gram tokenization, and returns ranked results in microseconds.
