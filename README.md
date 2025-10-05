@@ -27,7 +27,7 @@ InfraRed normalizes each term’s contribution and combines them geometrically, 
 
 ### ⚡ Performance
 
-Infrared builds its index in about 50-60 ms for four medium-length essays (~31,000 words total) and saves it as a 362 KB gzipped JSON file—using roughly 12 bytes per word in the corpus.
+InfraRed builds its index in about 50-60 ms for four medium-length essays (~31,000 words total) and saves it as a 362 KB gzipped JSON file—using roughly 12 bytes per word in the corpus.
 
 Search latency for these documents is in the range of 7–30 µs per query, returning ranked, normalized results.
 
@@ -96,14 +96,14 @@ Search completed in 19 microseconds.
 
 ### Scoring Methodology
 
-Infrared uses a classic TF-IDF approach with a few small twists for stability and interpretability.
+InfraRed uses a classic TF-IDF approach with a few small twists for stability and interpretability.
 
 Each term is weighted by how often it appears in a document (TF—term frequency) and how rare it is across all documents (IDF—inverse document frequency). Common words like _and_ or _the_ therefore carry almost no weight, while distinctive terms contribute strongly.
 
 To prevent very frequent words from dominating the results, InfraRed applies a simple L₂ normalization step that balances each term’s influence across the corpus.  
 This ensures that every word contributes proportionally to how informative it is, not how common it happens to be.
 
-When you search for multiple terms, Infrared computes an individual relevance score for each term and then combines the non-zero scores using a geometric mean. This emphasizes documents that match more of the query terms while still giving partial credit to those that contain only some of them. The result is a balanced ranking that rewards comprehensive matches without zeroing out documents that miss a term.
+When you search for multiple terms, InfraRed computes an individual relevance score for each term and then combines the non-zero scores using a geometric mean. This emphasizes documents that match more of the query terms while still giving partial credit to those that contain only some of them. The result is a balanced ranking that rewards comprehensive matches without zeroing out documents that miss a term.
 
 In short:
 - TF-IDF weighting gives meaningful words more impact.  
