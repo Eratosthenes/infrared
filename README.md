@@ -12,7 +12,7 @@ Unlike most traditional search engines, InfraRed produces globally-normalized sc
 
 Engines like Lucene or Elasticsearch (BM25) normalize scores only within a single query—so a document scoring `2.0` for “moral law” and `0.5` for “freedom and law” doesn’t mean it’s four times more relevant to the first. Those values exist on different, query-dependent scales.
 
-InfraRed normalizes each term’s contribution and combines them geometrically, so every result falls on a consistent `[0, 1]` scale. A document scoring 0.8 for one query and 0.8 for another truly reflects equal relevance—making the engine useful not just for ranking results, but also for comparing conceptual similarity across searches.
+InfraRed normalizes each term’s contribution and combines them geometrically using an energy-minimizing formula, so every result falls on a consistent `[0, 1]` scale. A document scoring 0.8 for one query and 0.8 for another truly reflects equal relevance—making the engine useful not just for ranking results, but also for comparing conceptual similarity across searches.
 
 ---
 
@@ -29,7 +29,7 @@ InfraRed normalizes each term’s contribution and combines them geometrically, 
 
 InfraRed builds its index in about 50-60 ms for four medium-length essays (~31,000 words total) and saves it as a 347 KB gzipped JSON file—using roughly 12 bytes per word in the corpus.
 
-Search latency for these documents is in the range of 7–30 µs per query, returning ranked, normalized results.
+Search latency for these documents is in the range of 7–50 µs per query, returning ranked, normalized results.
 
 Infrared automatically prunes overly common terms based on corpus size: for small datasets it keeps all words, and for very large ones it limits terms that appear in more than about 5 percent of documents. This ensures the index stays compact and that search results remain discriminative even at scale.
 
@@ -85,17 +85,12 @@ Search completed in 19 microseconds.
 
 ### Scoring Methodology
 
-InfraRed uses a classic TF-IDF approach with a few small twists for stability and interpretability.
+InfraRed uses a TF-IDF approach with a few important twists for stability and interpretability.
 
 Each term is weighted by how often it appears in a document (TF—term frequency) and how rare it is across all documents (IDF—inverse document frequency). Common words like _and_ or _the_ therefore carry almost no weight, while distinctive terms contribute strongly.
 
-To prevent very frequent words from dominating the results, InfraRed applies a simple L₂ normalization step that balances each term’s influence across the corpus.  This ensures that every word contributes proportionally to how informative it is, not how common it happens to be.
+InfraRed also applies an L₂ normalization step that balances each term’s influence across the corpus.  This ensures that every term contributes proportionally to how informative it is.
 
-When you search for multiple terms, InfraRed computes an individual relevance score for each term and then combines the non-zero scores using a geometric mean. This emphasizes documents that match more of the query terms while still giving partial credit to those that contain only some of them. The result is a balanced ranking that rewards comprehensive matches without zeroing out documents that miss a term.
-
-In short:
-- TF-IDF weighting gives meaningful words more impact.  
-- Normalization keeps the scale consistent across queries.  
-- The geometric mean rewards conceptual overlap over raw frequency.
+When you search for multiple terms, InfraRed computes a relevance score for each term and then combines all non-zero scores using a weighted geometric mean. This rewards documents that match more of the query terms while still giving partial credit to those that contain only some of them. The result is a balanced ranking that rewards comprehensive matches without zeroing out documents that miss a term.
 
 The result is a compact, fast, and interpretable relevance model that produces rankings that "feel right" even on small text collections.

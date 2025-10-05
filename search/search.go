@@ -262,23 +262,24 @@ func (idx *Index) tfLogIdf(term, docName string) float64 {
 	return idx.tf(term, docName) * math.Log(idx.idf(term)) / idx.tfNorm(term)
 }
 
-// docScore calculates the score of a document based on the geometric mean of search terms scores
+// docScore calculates the score of a document based on the weighted geometric mean of search terms scores
 func (idx *Index) docScore(terms []string, doc *Document) SearchResult {
-	score := 1.0
-	nfound := 0.0
+	weightedSum := 0.0
+	weightTotal := 0.0
 	for _, term := range buildNgrams(terms) {
 		termScore := idx.tfLogIdf(strings.ToLower(term), doc.Name)
 		if termScore > 0 {
-			score *= termScore
-			nfound++
+			w := math.Log(idx.idf(term))
+			weightedSum += w * math.Log(termScore)
+			weightTotal += w
 		}
 	}
 
 	var docScore float64
-	if nfound == 0 {
+	if weightTotal == 0 {
 		docScore = 0
 	} else {
-		docScore = math.Pow(score, 1/nfound)
+		docScore = math.Exp(weightedSum / weightTotal)
 	}
 	return SearchResult{Document: doc, Score: docScore}
 }
