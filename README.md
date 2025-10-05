@@ -27,7 +27,7 @@ InfraRed normalizes each term’s contribution and combines them geometrically, 
 
 ### ⚡ Performance
 
-InfraRed builds its index in about 50-60 ms for four medium-length essays (~31,000 words total) and saves it as a 362 KB gzipped JSON file—using roughly 12 bytes per word in the corpus.
+InfraRed builds its index in about 50-60 ms for four medium-length essays (~31,000 words total) and saves it as a 347 KB gzipped JSON file—using roughly 12 bytes per word in the corpus.
 
 Search latency for these documents is in the range of 7–30 µs per query, returning ranked, normalized results.
 
@@ -40,7 +40,7 @@ Infrared automatically prunes overly common terms based on corpus size: for smal
 ```text
 $ go run main.go
 Index built in 52 milliseconds.
-The index file is 362 KB.
+The index file is 347 KB.
 
 Documents: 4
 Indexed ngrams: 55873
