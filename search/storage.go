@@ -72,7 +72,12 @@ func (idx *Index) populate(loader Loader, docOpts DocOpts) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	idx.docs = docs
+
+	// set idx.docs to a map with key as doc.Name and value as doc
+	idx.docs = make(map[string]Document)
+	for _, doc := range docs {
+		idx.docs[doc.Name] = doc
+	}
 }
 
 type indexLoader func(loader Loader, docOpts DocOpts) *Index

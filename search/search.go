@@ -11,7 +11,7 @@ Index: {docs, tMap:{term: TermFreq:{idf, tfMap:{doc1: tf1, doc2: tf2, ...}}}}
 */
 type Index struct {
 	TMap       map[string]TermFreq `json:"t_map"` // term map
-	docs       []Document
+	docs       map[string]Document
 	normalizer Normalizer
 	compressed bool
 }
