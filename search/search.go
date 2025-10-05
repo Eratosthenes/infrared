@@ -219,6 +219,13 @@ func (idx *Index) build() {
 		tfreq.Idf = float64(len(idx.docs)) / float64(len(tf.TfMap)) // always >= 1
 		idx.TMap[term] = tfreq
 	}
+
+	// if the tfMap for a term exists for every document, remove the term from the index
+	for term, tf := range idx.TMap {
+		if len(tf.TfMap) == len(idx.docs) {
+			delete(idx.TMap, term)
+		}
+	}
 }
 
 func (idx *Index) tfNorm(term string) float64 {
