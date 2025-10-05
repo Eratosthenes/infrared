@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	ir "example.com/infrared/search"
+	ir "github.com/Eratosthenes/infrared/search"
 )
 
 func main() {
